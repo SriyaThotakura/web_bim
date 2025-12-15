@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floor-by-Floor Program Analysis</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+
+    .floor-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .floor-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .floor-btn:hover {
+      background: #cbd5e1;
+    }
+
+    .floor-btn.active {
+      background: #2563eb;
+      color: white;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .bubble-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .bubble-header {
+      padding: 16px;
+      color: white;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    #bubbleChart {
+      width: 100%;
+      height: 600px;
+      background: white;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 16px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+      padding-top: 12px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #1a202c;
+    }
+
+    .hovered-card {
+      background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+      border: 2px solid #3b82f6;
+    }
+
+    .space-list {
+      max-height: 384px;
+      overflow-y: auto;
+    }
+
+    .space-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+
+    .space-item:hover {
+      background: #f9fafb;
+    }
+
+    .space-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      margin-right: 8px;
+    }
+
+    .space-info {
+      display: flex;
+      align-items: center;
+      color: #1f2937;
+    }
+
+    .space-area {
+      font-weight: 600;
+      color: #1a202c;
+    }
+
+    .quick-nav {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .quick-nav h4 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      color: #1a202c;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quick-btn {
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .summary-card {
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
+      color: white;
+    }
+
+    .summary-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .summary-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .summary-sublabel {
+      font-size: 12px;
+      opacity: 0.75;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Floor-by-Floor Program Analysis</h1>
+      <p class="subtitle">1225 Broadway - Detailed Space Breakdown</p>
+      <div class="floor-selector" id="floorSelector"></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="bubble-container">
+        <div class="bubble-header" id="bubbleHeader">Space Allocation Bubble Diagram</div>
+        <div id="bubbleChart"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="card" id="statsCard">
+          <h3>Floor Statistics</h3>
+          <div id="statsContent"></div>
+        </div>
+
+        <div class="card" id="hoveredCard" style="display: none;">
+          <h3 id="hoveredName"></h3>
+          <div id="hoveredContent"></div>
+        </div>
+
+        <div class="card">
+          <h3>Space Breakdown</h3>
+          <div class="space-list" id="spaceList"></div>
+        </div>
+
+        <div class="quick-nav">
+          <h4>Quick Jump</h4>
+          <div class="quick-grid">
+            <button class="quick-btn" style="background: #ef4444;" onclick="selectFloor('1')">Retail Floors</button>
+            <button class="quick-btn" style="background: #3b82f6;" onclick="selectFloor('6-10')">Office Floors</button>
+            <button class="quick-btn" style="background: #f59e0b;" onclick="selectFloor('16')">Amenity Deck</button>
+            <button class="quick-btn" style="background: #10b981;" onclick="selectFloor('17-29')">Residential</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card" style="background: #ef4444;">
+        <div class="summary-value">122,700</div>
+        <div class="summary-label">SF Retail NLA</div>
+        <div class="summary-sublabel">Floors 1-5</div>
+      </div>
+      <div class="summary-card" style="background: #3b82f6;">
+        <div class="summary-value">213,531</div>
+        <div class="summary-label">SF Office NLA</div>
+        <div class="summary-sublabel">Floors 6-15</div>
+      </div>
+      <div class="summary-card" style="background: #10b981;">
+        <div class="summary-value">325</div>
+        <div class="summary-label">Residential Units</div>
+        <div class="summary-sublabel">Floors 16-43</div>
+      </div>
+      <div class="summary-card" style="background: #f59e0b;">
+        <div class="summary-value">33,940</div>
+        <div class="summary-label">SF Outdoor Space</div>
+        <div class="summary-sublabel">Terraces + Balconies</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const buildingData = {
+      "1": {
+        name: "FLOOR 1 - RETAIL + LOBBIES",
+        height: "0' - 18'",
+        totalArea: 30550,
+        color: "#ef4444",
+        spaces: [
+          { name: "Retail", area: 12000, color: "#f87171", type: "leasable" },
+          { name: "Public Arcade", area: 10000, color: "#fbbf24", type: "public" },
+          { name: "Residential Lobby", area: 1800, color: "#60a5fa", type: "circulation" },
+          { name: "Office Lobby", area: 1500, color: "#34d399", type: "circulation" },
+          { name: "Elevator Core", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Service/Loading", area: 1500, color: "#cbd5e1", type: "core" },
+          { name: "MEP/Electrical", area: 1000, color: "#e2e8f0", type: "core" },
+          { name: "Stairs", area: 500, color: "#f1f5f9", type: "core" },
+          { name: "Restrooms", area: 250, color: "#f8fafc", type: "support" }
+        ]
+      },
+      "2": {
+        name: "FLOOR 2 - RETAIL + TERRACE",
+        height: "18' - 36'",
+        totalArea: 30550,
+        color: "#ef4444",
+        spaces: [
+          { name: "Retail", area: 12000, color: "#f87171", type: "leasable" },
+          { name: "Outdoor Terrace", area: 10000, color: "#a7f3d0", type: "amenity" },
+          { name: "Escalators", area: 600, color: "#fcd34d", type: "circulation" },
+          { name: "Elevator Shafts", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 600, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 800, color: "#f1f5f9", type: "support" },
+          { name: "Storage/Janitor", area: 250, color: "#f8fafc", type: "support" },
+          { name: "Corridors", area: 3800, color: "#fef3c7", type: "circulation" }
+        ]
+      },
+      "3-5": {
+        name: "FLOORS 3-5 - RETAIL",
+        height: "36' - 81'",
+        totalArea: 30550,
+        color: "#ef4444",
+        spaces: [
+          { name: "Retail Space", area: 22100, color: "#f87171", type: "leasable" },
+          { name: "Escalators (Fl 3)", area: 600, color: "#fcd34d", type: "circulation" },
+          { name: "Elevator Shafts", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 600, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 800, color: "#f1f5f9", type: "support" },
+          { name: "Electrical/IDF", area: 400, color: "#f8fafc", type: "core" },
+          { name: "Storage", area: 250, color: "#fef3c7", type: "support" },
+          { name: "Corridors", area: 3300, color: "#fef3c7", type: "circulation" }
+        ]
+      },
+      "6-10": {
+        name: "FLOORS 6-10 - OFFICE BASE",
+        height: "81' - 151'",
+        totalArea: 30550,
+        color: "#3b82f6",
+        spaces: [
+          { name: "Office Space", area: 25750, color: "#60a5fa", type: "leasable" },
+          { name: "Elevator Shafts", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 700, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 1000, color: "#dbeafe", type: "support" },
+          { name: "Electrical/IDF", area: 400, color: "#f1f5f9", type: "core" },
+          { name: "Janitor", area: 200, color: "#f8fafc", type: "support" }
+        ]
+      },
+      "11": {
+        name: "FLOOR 11 - OFFICE TRANSITION",
+        height: "151' - 165'",
+        totalArea: 24541,
+        color: "#3b82f6",
+        spaces: [
+          { name: "Office Space", area: 19741, color: "#60a5fa", type: "leasable" },
+          { name: "Elevator Shafts", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 700, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 1000, color: "#dbeafe", type: "support" },
+          { name: "Electrical/IDF", area: 400, color: "#f1f5f9", type: "core" },
+          { name: "Janitor", area: 200, color: "#f8fafc", type: "support" }
+        ]
+      },
+      "12-15": {
+        name: "FLOORS 12-15 - OFFICE TOWER",
+        height: "165' - 221'",
+        totalArea: 21060,
+        color: "#3b82f6",
+        spaces: [
+          { name: "Office Space", area: 16260, color: "#60a5fa", type: "leasable" },
+          { name: "Elevator Shafts", area: 2000, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 700, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 1000, color: "#dbeafe", type: "support" },
+          { name: "Electrical/IDF", area: 400, color: "#f1f5f9", type: "core" },
+          { name: "Janitor", area: 200, color: "#f8fafc", type: "support" }
+        ]
+      },
+      "16": {
+        name: "FLOOR 16 - AMENITY DECK",
+        height: "221' - 232'",
+        totalArea: 17422,
+        color: "#fbbf24",
+        spaces: [
+          { name: "Fitness Center", area: 3000, color: "#fcd34d", type: "amenity" },
+          { name: "Residents Lounge", area: 2500, color: "#fde68a", type: "amenity" },
+          { name: "Outdoor Terrace", area: 5000, color: "#a7f3d0", type: "amenity" },
+          { name: "Co-working Space", area: 2000, color: "#fef3c7", type: "amenity" },
+          { name: "Elevator Shafts", area: 800, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP/Storage", area: 2519, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 803, color: "#f1f5f9", type: "support" },
+          { name: "Corridors", area: 300, color: "#fef3c7", type: "circulation" }
+        ]
+      },
+      "17-29": {
+        name: "FLOORS 17-29 - RESIDENTIAL",
+        height: "232' - 362'",
+        totalArea: 17422,
+        color: "#10b981",
+        spaces: [
+          { name: "2 Studios (550 sf ea)", area: 1100, color: "#34d399", type: "units" },
+          { name: "8 One-Bedrooms (850 sf ea)", area: 6800, color: "#6ee7b7", type: "units" },
+          { name: "4 Two-Bedrooms (1200 sf ea)", area: 4800, color: "#a7f3d0", type: "units" },
+          { name: "Balconies", area: 1060, color: "#d1fae5", type: "outdoor" },
+          { name: "Corridors", area: 903, color: "#fef3c7", type: "circulation" },
+          { name: "Elevator Shafts", area: 800, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 800, color: "#e2e8f0", type: "core" },
+          { name: "Trash Room", area: 350, color: "#f1f5f9", type: "support" },
+          { name: "Electrical", area: 300, color: "#f8fafc", type: "core" },
+          { name: "Package Room", area: 9, color: "#fef3c7", type: "support" }
+        ]
+      },
+      "30": {
+        name: "FLOOR 30 - SKY AMENITY",
+        height: "362' - 373'",
+        totalArea: 14334,
+        color: "#fbbf24",
+        spaces: [
+          { name: "Sky Lounge", area: 3500, color: "#fcd34d", type: "amenity" },
+          { name: "Rooftop Terrace", area: 4500, color: "#a7f3d0", type: "amenity" },
+          { name: "Private Dining", area: 1200, color: "#fde68a", type: "amenity" },
+          { name: "Media Room", area: 800, color: "#fef3c7", type: "amenity" },
+          { name: "Elevator Shafts", area: 800, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP/Storage", area: 2519, color: "#e2e8f0", type: "core" },
+          { name: "Restrooms", area: 315, color: "#f1f5f9", type: "support" },
+          { name: "Corridors", area: 200, color: "#fef3c7", type: "circulation" }
+        ]
+      },
+      "31-43": {
+        name: "FLOORS 31-43 - RESIDENTIAL TOWER",
+        height: "373' - 503'",
+        totalArea: 14334,
+        color: "#10b981",
+        spaces: [
+          { name: "2 Studios (550 sf ea)", area: 1100, color: "#34d399", type: "units" },
+          { name: "6 One-Bedrooms (850 sf ea)", area: 5100, color: "#6ee7b7", type: "units" },
+          { name: "3 Two-Bedrooms (1200 sf ea)", area: 3600, color: "#a7f3d0", type: "units" },
+          { name: "Balconies", area: 820, color: "#d1fae5", type: "outdoor" },
+          { name: "Corridors", area: 715, color: "#fef3c7", type: "circulation" },
+          { name: "Elevator Shafts", area: 800, color: "#94a3b8", type: "core" },
+          { name: "Stairs", area: 500, color: "#cbd5e1", type: "core" },
+          { name: "MEP Shafts", area: 800, color: "#e2e8f0", type: "core" },
+          { name: "Trash Room", area: 350, color: "#f1f5f9", type: "support" },
+          { name: "Electrical", area: 300, color: "#f8fafc", type: "core" },
+          { name: "Package Room", area: 249, color: "#fef3c7", type: "support" }
+        ]
+      }
+    };
+
+    const floorOptions = [
+      { id: "1", label: "Floor 1" },
+      { id: "2", label: "Floor 2" },
+      { id: "3-5", label: "Floors 3-5" },
+      { id: "6-10", label: "Floors 6-10" },
+      { id: "11", label: "Floor 11" },
+      { id: "12-15", label: "Floors 12-15" },
+      { id: "16", label: "Floor 16 (Amenity)" },
+      { id: "17-29", label: "Floors 17-29" },
+      { id: "30", label: "Floor 30 (Amenity)" },
+      { id: "31-43", label: "Floors 31-43" }
+    ];
+
+    let currentFloor = "1";
+    let hoveredSpace = null;
+
+    function initFloorSelector() {
+      const selector = document.getElementById('floorSelector');
+      floorOptions.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'floor-btn';
+        btn.textContent = option.label;
+        btn.onclick = () => selectFloor(option.id);
+        btn.dataset.floor = option.id;
+        selector.appendChild(btn);
+      });
+      updateActiveButton();
+    }
+
+    function updateActiveButton() {
+      document.querySelectorAll('.floor-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.floor === currentFloor);
+      });
+    }
+
+    function selectFloor(floorId) {
+      currentFloor = floorId;
+      updateActiveButton();
+      renderBubbles();
+      updateStats();
+      updateSpaceList();
+    }
+
+    function updateStats() {
+      const floorData = buildingData[currentFloor];
+      const leasable = floorData.spaces.filter(s => s.type === 'leasable' || s.type === 'units').reduce((sum, s) => sum + s.area, 0);
+      const core = floorData.spaces.filter(s => s.type === 'core').reduce((sum, s) => sum + s.area, 0);
+      const circulation = floorData.spaces.filter(s => s.type === 'circulation').reduce((sum, s) => sum + s.area, 0);
+      const amenity = floorData.spaces.filter(s => s.type === 'amenity' || s.type === 'outdoor' || s.type === 'public').reduce((sum, s) => sum + s.area, 0);
+      const efficiency = ((leasable / floorData.totalArea) * 100).toFixed(1);
+
+      document.getElementById('bubbleHeader').style.backgroundColor = floorData.color;
+
+      let html = `
+        <div class="stat-row">
+          <span class="stat-label">Total Area</span>
+          <span class="stat-value">${floorData.totalArea.toLocaleString()} SF</span>
+        </div>
+      `;
+
+      if (leasable > 0) {
+        html += `
+          <div class="stat-row">
+            <span class="stat-label">Leasable/Units</span>
+            <span class="stat-value" style="color: #2563eb;">${leasable.toLocaleString()} SF</span>
+          </div>
+        `;
+      }
+
+      if (amenity > 0) {
+        html += `
+          <div class="stat-row">
+            <span class="stat-label">Amenity/Public</span>
+            <span class="stat-value" style="color: #d97706;">${amenity.toLocaleString()} SF</span>
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="stat-row">
+          <span class="stat-label">Core/MEP</span>
+          <span class="stat-value" style="color: #475569;">${core.toLocaleString()} SF</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Circulation</span>
+          <span class="stat-value" style="color: #ca8a04;">${circulation.toLocaleString()} SF</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label" style="font-weight: 600; color: #1a202c;">Efficiency</span>
+          <span class="stat-value" style="color: #059669;">${efficiency}%</span>
+        </div>
+      `;
+
+      document.getElementById('statsContent').innerHTML = html;
+    }
+
+    function updateSpaceList() {
+      const floorData = buildingData[currentFloor];
+      const html = floorData.spaces.map(space => `
+        <div class="space-item">
+          <div class="space-info">
+            <div class="space-color" style="background: ${space.color};"></div>
+            <span>${space.name}</span>
+          </div>
+          <span class="space-area">${space.area.toLocaleString()} SF</span>
+        </div>
+      `).join('');
+      document.getElementById('spaceList').innerHTML = html;
+    }
+
+    function updateHoveredCard(space) {
+      const card = document.getElementById('hoveredCard');
+      if (!space) {
+        card.style.display = 'none';
+        hoveredSpace = null;
+        return;
+      }
+
+      hoveredSpace = space;
+      const floorData = buildingData[currentFloor];
+      const percentage = ((space.area / floorData.totalArea) * 100).toFixed(1);
+
+      card.style.display = 'block';
+      card.className = 'card hovered-card';
+      document.getElementById('hoveredName').textContent = space.name;
+      document.getElementById('hoveredContent').innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #374151;">Area:</span>
+            <span style="font-weight: 700;">${space.area.toLocaleString()} SF</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #374151;">Type:</span>
+            <span style="font-weight: 700; text-transform: capitalize;">${space.type}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #374151;">% of Floor:</span>
+            <span style="font-weight: 700;">${percentage}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBubbles() {
+      const container = document.getElementById('bubbleChart');
+      container.innerHTML = '';
+
+      const width = container.clientWidth;
+      const height = 600;
+
+      const svg = d3.select('#bubbleChart')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height]);
+
+      const floorData = buildingData[currentFloor];
+
+      // Title
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '20px')
+        .style('font-weight', '700')
+        .style('fill', '#1a202c')
+        .text(floorData.name);
+
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 50)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '13px')
+        .style('fill', '#64748b')
+        .text(`${floorData.height} | Total: ${floorData.totalArea.toLocaleString()} SF`);
+
+      // Create hierarchy
+      const root = d3.hierarchy({
+        name: floorData.name,
+        children: floorData.spaces.map(s => ({ ...s, value: s.area }))
+      })
+      .sum(d => d.value)
+      .sort((a, b) => b.value - a.value);
+
+      // Pack layout
+      const pack = d3.pack()
+        .size([width - 100, height - 120])
+        .padding(5);
+
+      const nodes = pack(root).descendants().slice(1);
+
+      const g = svg.append('g')
+        .attr('transform', 'translate(50, 80)');
+
+      // Create gradients
+      const defs = svg.append('defs');
+      nodes.forEach((node, i) => {
+        const gradient = defs.append('radialGradient')
+          .attr('id', `bubble-gradient-${i}`);
+        
+        gradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', d3.rgb(node.data.color).brighter(0.3));
+        
+        gradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', node.data.color);
+      });
+
+      // Draw bubbles
+      const bubble = g.selectAll('g')
+        .data(nodes)
+        .join('g')
+        .attr('transform', d => `translate(${d.x},${d.y})`)
+        .style('cursor', 'pointer')
+        .on('mouseover', function(event, d) {
+          d3.select(this).select('circle')
+            .transition()
+            .duration(200)
+            .attr('r', d.r * 1.05);
+          
+          updateHoveredCard(d.data);
+        })
+        .on('mouseout', function(event, d) {
+          d3.select(this).select('circle')
+            .transition()
+            .duration(200)
+            .attr('r', d.r);
+          
+          updateHoveredCard(null);
+        });
+
+      bubble.append('circle')
+        .attr('r', d => d.r)
+        .attr('fill', (d, i) => `url(#bubble-gradient-${i})`)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+
+      // Labels
+      bubble.each(function(d) {
+        const text = d3.select(this).append('text')
+          .attr('text-anchor', 'middle')
+          .style('fill', '#1a202c')
+          .style('font-size', `${Math.min(d.r / 4, 12)}px`)
+          .style('font-weight', '600')
+          .style('pointer-events', 'none');
+
+        const words = d.data.name.split(' ');
+        const maxChars = Math.floor(d.r / 3);
+        
+        let lines = [];
+        let currentLine = '';
+        
+        words.forEach(word => {
+          if ((currentLine + ' ' + word).length <= maxChars) {
+            currentLine += (currentLine ? ' ' : '') + word;
+          } else {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+          }
+        });
+        if (currentLine) lines.push(currentLine);
+
+        lines = lines.slice(0, 3);
+
+        lines.forEach((line, i) => {
+          text.append('tspan')
+            .attr('x', 0)
+            .attr('dy', i === 0 ? `-${(lines.length - 1) * 0.5}em` : '1.1em')
+            .text(line);
+        });
+
+        // Area label
+        if (d.r > 25) {
+          text.append('tspan')
+            .attr('x', 0)
+            .attr('dy', '1.3em')
+            .style('font-size', `${Math.min(d.r / 5, 10)}px`)
+            .style('fill', '#475569')
+            .text(`${d.data.area.toLocaleString()} SF`);
+        }
+      });
+
+      // Legend
+      const legendData = [
+        { type: 'leasable', label: 'Leasable Space', color: '#3b82f6' },
+        { type: 'units', label: 'Residential Units', color: '#10b981' },
+        { type: 'amenity', label: 'Amenity', color: '#fbbf24' },
+        { type: 'circulation', label: 'Circulation', color: '#fcd34d' },
+        { type: 'core', label: 'Core/MEP', color: '#94a3b8' },
+        { type: 'support', label: 'Support', color: '#cbd5e1' },
+        { type: 'outdoor', label: 'Outdoor', color: '#a7f3d0' },
+        { type: 'public', label: 'Public Space', color: '#fbbf24' }
+      ];
+
+      const legend = svg.append('g')
+        .attr('transform', `translate(20, ${height - 30})`);
+
+      legendData.forEach((item, i) => {
+        const x = (i % 4) * 150;
+        const y = Math.floor(i / 4) * 20;
+        
+        legend.append('circle')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('r', 6)
+          .attr('fill', item.color);
+        
+        legend.append('text')
+          .attr('x', x + 12)
+          .attr('y', y + 4)
+          .style('font-size', '11px')
+          .style('fill', '#475569')
+          .text(item.label);
+      });
+    }
+
+    // Initialize
+    initFloorSelector();
+    renderBubbles();
+    updateStats();
+    updateSpaceList();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Re-Thinking BIM | Professional Parametric</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Enhanced Touch Interaction System */
+        .touch-active {
+            transform: scale(0.97);
+            transition: all 0.3s cubic-bezier(0.2, 0, 0.1, 1);
+            opacity: 0.9;
+        }
+        
+        /* Smooth blend transition */
+        .blend-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity, background-color;
+        }
+        
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple 1s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 1000;
+            opacity: 0;
+            will-change: transform, opacity;
+            mix-blend-mode: overlay;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        /* Touch glow effect */
+        .touch-glow {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            animation: touchGlow 1s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 999;
+        }
+        
+        @keyframes touchGlow {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0.5; }
+            50% { opacity: 0.3; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        /* Enhanced Physics-based card interactions */
+        .module-card {
+            transform-style: preserve-3d;
+            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform, box-shadow, background, border-color;
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            -webkit-transform-style: preserve-3d;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-8px) rotateX(2deg) rotateY(2deg) scale(1.02);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6) !important;
+            background: rgba(45, 48, 63, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        /* Enhanced touch feedback */
+        @media (hover: none) {
+            .module-card:active {
+                transform: scale(0.97) !important;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                background: rgba(50, 53, 70, 0.9);
+            }
+            
+            /* Smoother scrolling on touch devices */
+            html {
+                -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
+            }
+        }
+        /* =========================
+           ENHANCED TOUCH INTERACTIONS
+           ========================= */
+        .touch-feedback {
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(0);
+        }
+        
+        .touch-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(0);
+            pointer-events: none;
+            animation: ripple 0.6s linear;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        /* Physics-based animations */
+        .physics-card {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                        box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, box-shadow;
+        }
+        
+        .physics-card:hover {
+            transform: translateY(-8px) rotateX(2deg) rotateY(2deg);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Touch feedback */
+        @media (hover: none) {
+            .touch-feedback:active {
+                transform: scale(0.98);
+                transition: transform 0.1s ease-out;
+            }
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* =========================
+           BASE STYLES - IGLOO INSPIRED
+           ========================= */
+        :root {
+            --primary: #b6bac5;
+            --primary-light: #d4d7de;
+            --accent: #8a8f9d;
+            --accent-dark: #6b7080;
+            --dark: #1a1d27;
+            --mid: #252834;
+            --card: rgba(37, 40, 52, 0.65);
+            --light: #b6bac5;
+            --text-primary: #e8eaed;
+            --text-secondary: rgba(182, 186, 197, 0.85);
+            --text-muted: rgba(182, 186, 197, 0.55);
+            --border: rgba(182, 186, 197, 0.12);
+            --border-strong: rgba(182, 186, 197, 0.22);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-lg: 0 24px 60px rgba(0,0,0,0.5);
+            --shadow-md: 0 16px 40px rgba(0,0,0,0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(182, 186, 197, 0.04), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(138, 143, 157, 0.03), transparent 45%),
+                radial-gradient(circle at 50% 50%, rgba(107, 112, 128, 0.02), transparent 60%),
+                #1a1d27;
+            color: var(--light);
+            overflow-x: hidden;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        
+        body.loaded {
+            opacity: 1;
+        }
+        
+        /* Minimal grid background */
+        .grid-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(182, 186, 197, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(182, 186, 197, 0.012) 1px, transparent 1px);
+            background-size: 80px 80px;
+            z-index: 0;
+        }
+        
+        .grid-background::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 20%, rgba(182, 186, 197, 0.03) 0%, transparent 55%),
+                radial-gradient(circle at 70% 80%, rgba(138, 143, 157, 0.025) 0%, transparent 55%);
+        }
+        
+        /* Minimal geometric accents */
+        .geometric-shape {
+            position: fixed;
+            background: linear-gradient(135deg, rgba(182, 186, 197, 0.025), rgba(138, 143, 157, 0.02));
+            backdrop-filter: blur(80px);
+            border: 1px solid rgba(182, 186, 197, 0.06);
+            animation: floatSubtle 25s ease-in-out infinite;
+            z-index: 0;
+            filter: saturate(0.7);
+            transition: transform 0.3s ease-out;
+            will-change: transform;
+        }
+        
+        .shape1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            right: -100px;
+            border-radius: 50%;
+            animation-delay: 0s;
+        }
+        
+        .shape2 {
+            width: 300px;
+            height: 300px;
+            bottom: 100px;
+            left: -80px;
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            animation-delay: 7s;
+        }
+        
+        .shape3 {
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            right: 15%;
+            border-radius: 20px;
+            transform: rotate(45deg);
+            animation-delay: 14s;
+        }
+        
+        @keyframes floatSubtle {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(20px, -20px) rotate(5deg); }
+            66% { transform: translate(-20px, 20px) rotate(-5deg); }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        header {
+            margin-bottom: 120px;
+            animation: slideDown 0.8s ease-out;
+            transition: transform 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .course-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: var(--primary-light);
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(182, 186, 197, 0.06);
+            border-left: 2px solid var(--primary);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+        
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(56px, 8vw, 92px);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 32px;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+        }
+        
+        h1 .gradient-text {
+            background: linear-gradient(135deg, #d4d7de 0%, #b6bac5 50%, #8a8f9d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            font-weight: 300;
+            color: var(--text-secondary);
+            max-width: 800px;
+            line-height: 1.7;
+            letter-spacing: -0.01em;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+            margin-top: 80px;
+        }
+        
+        /* Glass morphism cards with depth */
+        .module-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeInUp 0.6s ease-out backwards, ambient-glow 4s ease-in-out infinite;
+            box-shadow: 
+                0 1px 0 rgba(255,255,255,0.02) inset,
+                0 8px 24px rgba(0,0,0,0.3),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateZ(0);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .module-card:nth-child(1) { animation-delay: 0.1s; }
+        .module-card:nth-child(2) { animation-delay: 0.2s; }
+        .module-card:nth-child(3) { animation-delay: 0.3s; }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0.0) 0%, 
+                rgba(255, 255, 255, 0.4) 30%,
+                rgba(212, 215, 222, 0.5) 50%,
+                rgba(255, 255, 255, 0.4) 70%,
+                rgba(255, 255, 255, 0.0) 100%);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .module-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .module-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(
+                500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255, 255, 255, 0.12),
+                rgba(182, 186, 197, 0.06) 40%,
+                transparent 70%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .module-card:hover::after {
+            opacity: 1;
+        }
+        
+        .module-card > * {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                var(--shadow-lg), 
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(255, 255, 255, 0.08),
+                0 0 60px rgba(182, 186, 197, 0.05);
+        }
+        
+        .module-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+        
+        .module-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.3;
+            letter-spacing: -0.015em;
+        }
+        
+        .module-description {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-weight: 300;
+        }
+        
+        .tech-specs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        /* Minimal pill-style tech tags */
+        .tech-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 7px 14px;
+            background: rgba(182, 186, 197, 0.08);
+            border: 1px solid rgba(182, 186, 197, 0.18);
+            border-radius: 999px;
+            color: rgba(212, 215, 222, 0.90);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+        
+        .tech-tag:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.15),
+                        0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .module-card:nth-child(2) .tech-tag {
+            background: rgba(182, 186, 197, 0.08);
+            border-color: rgba(182, 186, 197, 0.18);
+            color: rgba(212, 215, 222, 0.90);
+        }
+        
+        .module-card:nth-child(2) .tech-tag:hover {
+            background: rgba(182, 186, 197, 0.12);
+            border-color: rgba(182, 186, 197, 0.3);
+        }
+        
+        .module-card:nth-child(3) .tech-tag {
+            background: rgba(182, 186, 197, 0.08);
+            border-color: rgba(182, 186, 197, 0.18);
+            color: rgba(212, 215, 222, 0.90);
+        }
+        
+        .module-card:nth-child(3) .tech-tag:hover {
+            background: rgba(182, 186, 197, 0.12);
+            border-color: rgba(182, 186, 197, 0.3);
+        }
+        
+        /* Minimal CTA section */
+        .cta-section {
+            margin-top: 100px;
+            text-align: center;
+            padding: 80px 40px;
+            background: 
+                radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.04), transparent 60%),
+                radial-gradient(circle at 50% 30%, rgba(182, 186, 197, 0.04), transparent 60%),
+                rgba(37, 40, 52, 0.3);
+            border: 1px solid rgba(182, 186, 197, 0.15);
+            border-radius: var(--radius-lg);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 60px rgba(255, 255, 255, 0.03);
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+        }
+        
+        /* Minimal button */
+        .cta-button {
+            position: relative;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 18px 48px;
+            background: linear-gradient(135deg, #b6bac5 0%, #8a8f9d 100%);
+            color: #1a1d27;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 12px 32px rgba(0,0,0,0.4),
+                0 0 20px rgba(255, 255, 255, 0.05);
+        }
+        
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.3), 
+                transparent 30%, 
+                transparent 70%, 
+                rgba(255, 255, 255, 0.3));
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 16px 40px rgba(0,0,0,0.5),
+                0 0 40px rgba(255, 255, 255, 0.15);
+            background: linear-gradient(135deg, #d4d7de 0%, #b6bac5 100%);
+        }
+        
+        .cta-button:hover::before {
+            opacity: 1;
+        }
+        
+        .cta-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Accessibility: visible keyboard focus */
+        :focus-visible {
+            outline: 2px solid rgba(182, 186, 197, 0.7);
+            outline-offset: 3px;
+        }
+        
+        /* Cursor effects */
+        * {
+            cursor: none;
+        }
+        
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(182, 186, 197, 0.5);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: all 0.15s ease;
+            transition-property: transform, border-color, background;
+            mix-blend-mode: difference;
+        }
+        
+        .cursor-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(212, 215, 222, 0.8);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            transition: transform 0.08s ease;
+        }
+        
+        .cursor.hover {
+            transform: scale(1.8);
+            background: rgba(182, 186, 197, 0.1);
+            border-color: rgba(212, 215, 222, 0.8);
+        }
+        
+        /* Ripple effect */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(182, 186, 197, 0.15) 50%, transparent 70%);
+            pointer-events: none;
+            z-index: 999;
+            animation: ripple-animation 0.8s ease-out;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+        
+        @keyframes ripple-animation {
+            from {
+                transform: scale(0);
+                opacity: 1;
+            }
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        /* Particle trail */
+        .particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 998;
+            animation: particle-fade 1.2s ease-out forwards;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+        
+        @keyframes particle-fade {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) translateY(30px);
+            }
+        }
+        
+        /* Card magnetic effect */
+        .module-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Touch/click glow effect */
+        .touch-glow {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(182, 186, 197, 0.1) 50%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 997;
+            animation: glow-expand 1s ease-out forwards;
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Custom cursor with white light */
+        .custom-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15), rgba(182, 186, 197, 0.08) 50%, transparent 70%);
+            opacity: 0.15;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity 0.3s ease;
+            mix-blend-mode: screen;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+        }
+        
+        @keyframes glow-expand {
+            from {
+                transform: scale(0);
+                opacity: 1;
+            }
+            to {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+        
+        /* Shimmer animation */
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+        
+        .module-card {
+            overflow: hidden;
+        }
+        
+        .module-card::before {
+            z-index: 3;
+        }
+        
+        /* Ambient light animation on cards */
+        @keyframes ambient-glow {
+            0%, 100% {
+                box-shadow: 
+                    0 1px 0 rgba(255,255,255,0.02) inset,
+                    0 8px 24px rgba(0,0,0,0.3),
+                    0 0 40px rgba(255, 255, 255, 0.03);
+            }
+            50% {
+                box-shadow: 
+                    0 1px 0 rgba(255,255,255,0.02) inset,
+                    0 8px 24px rgba(0,0,0,0.3),
+                    0 0 60px rgba(255, 255, 255, 0.06);
+            }
+        }
+        
+        .module-card {
+            animation: fadeInUp 0.6s ease-out backwards, ambient-glow 4s ease-in-out infinite;
+        }
+        
+        /* Respect reduced-motion users */
+        @media (prefers-reduced-motion: reduce) {
+            * { 
+                animation: none !important; 
+                transition: none !important; 
+                scroll-behavior: auto !important; 
+                cursor: auto !important;
+            }
+            .module-card:hover { 
+                transform: none !important; 
+            }
+            .cta-button:hover {
+                transform: none !important;
+            }
+            .cursor, .cursor-dot, .particle, .ripple, .touch-glow {
+                display: none !important;
+            }
+            .geometric-shape {
+                animation: none !important;
+                transform: none !important;
+            }
+            header {
+                transform: none !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 48px; }
+            .content-grid { grid-template-columns: 1fr; }
+            .container { padding: 40px 20px; }
+            
+            /* Disable cursor effects on mobile */
+            .cursor, .cursor-dot {
+                display: none;
+            }
+            
+            * {
+                cursor: auto !important;
+            }
+        }
+    </style>
+    <script>
+        // Enhanced touch and interaction system
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize enhanced touch handler with passive listeners
+            const supportsPassive = (() => {
+                let supportsPassive = false;
+                try {
+                    const opts = Object.defineProperty({}, 'passive', {
+                        get: () => (supportsPassive = true)
+                    });
+                    window.addEventListener('test', null, opts);
+                    window.removeEventListener('test', null, opts);
+                } catch (e) {}
+                return supportsPassive;
+            })();
+            
+            const touchOptions = supportsPassive ? { passive: true } : false;
+            touchHandler = new TouchHandler();
+            
+            // Add physics class to cards
+            document.querySelectorAll('.module-card').forEach(card => {
+                card.classList.add('physics-card');
+            });
+            
+            // Initialize smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        e.preventDefault();
+                        const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - 80;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            // Initialize touch interactions
+            initTouchInteractions();
+            
+            // Initialize physics-based animations
+            initPhysicsAnimations();
+            
+            // Initialize smooth scrolling
+            initSmoothScrolling();
+            
+            // Initialize haptic feedback for touch devices
+            if (isTouchDevice) {
+                initHapticFeedback();
+            }
+            // Add loaded class for smooth entrance
+            setTimeout(() => {
+                document.body.classList.add('loaded');
+            }, 100);
+            
+            let mouseX = 0, mouseY = 0;
+            let currentX = 0, currentY = 0;
+            
+            // Smooth mouse position tracking
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            // Smooth animation loop
+            function animate() {
+                // Smooth lerp for cursor following
+                currentX += (mouseX - currentX) * 0.1;
+                currentY += (mouseY - currentY) * 0.1;
+                
+                // Parallax effect on geometric shapes
+                const shapes = document.querySelectorAll('.geometric-shape');
+                shapes.forEach((shape, index) => {
+                    const speed = (index + 1) * 0.015;
+                    const x = (currentX - window.innerWidth / 2) * speed;
+                    const y = (currentY - window.innerHeight / 2) * speed;
+                    shape.style.transform = `translate(${x}px, ${y}px)`;
+                });
+                
+                // Parallax on grid background
+                const grid = document.querySelector('.grid-background');
+                if (grid) {
+                    const gridX = (currentX - window.innerWidth / 2) * 0.005;
+                    const gridY = (currentY - window.innerHeight / 2) * 0.005;
+                    grid.style.transform = `translate(${gridX}px, ${gridY}px)`;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            animate();
+            
+            // Enhanced 3D tilt effect with smooth blend transitions
+            const cards = document.querySelectorAll('.module-card');
+            let isTouching = false;
+            let touchStartTime = 0;
+            
+            // Add blend transition class to all cards
+            cards.forEach(card => {
+                card.classList.add('blend-transition');
+                
+                // Add ripple effect container
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                card.appendChild(ripple);
+                
+                // Store original styles for reset
+                card._originalBg = window.getComputedStyle(card).backgroundColor;
+                card._originalBorder = window.getComputedStyle(card).borderColor;
+                
+                // Touch start handler
+                const handleTouchStart = (e) => {
+                    isTouching = true;
+                    touchStartTime = Date.now();
+                    
+                    // Position ripple at touch point
+                    const rect = card.getBoundingClientRect();
+                    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+                    
+                    ripple.style.left = `${x}px`;
+                    ripple.style.top = `${y}px`;
+                    ripple.style.animation = 'none';
+                    ripple.offsetHeight; // Trigger reflow
+                    ripple.style.animation = 'ripple 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+                    
+                    // Add active state
+                    card.classList.add('touch-active');
+                    
+                    // Prevent default to avoid scrolling
+                    e.preventDefault();
+                };
+                
+                // Touch end handler
+                const handleTouchEnd = (e) => {
+                    isTouching = false;
+                    const touchDuration = Date.now() - touchStartTime;
+                    
+                    // Only trigger click if touch was short
+                    if (touchDuration < 300) {
+                        // Simulate click for tap
+                        const clickEvent = new MouseEvent('click', {
+                            view: window,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        card.dispatchEvent(clickEvent);
+                    }
+                    
+                    // Remove active state with delay for smooth transition
+                    setTimeout(() => {
+                        if (!isTouching) {
+                            card.classList.remove('touch-active');
+                        }
+                    }, 150);
+                };
+                
+                // Add event listeners with passive option for better performance
+                card.addEventListener('touchstart', handleTouchStart, touchOptions);
+                card.addEventListener('mousedown', handleTouchStart);
+                
+                card.addEventListener('touchend', handleTouchEnd, touchOptions);
+                card.addEventListener('mouseup', handleTouchEnd);
+                card.addEventListener('mouseleave', handleTouchEnd);
+            });
+            
+            // Enhanced 3D tilt effect with smooth blend transitions
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    const rotateX = (y - centerY) / 15;
+                    const rotateY = (centerX - x) / 15;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+                });
+            });
+            
+            // Magnetic effect on CTA button
+            const ctaButton = document.querySelector('.cta-button');
+            if (ctaButton) {
+                ctaButton.addEventListener('mousemove', (e) => {
+                    const rect = ctaButton.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    
+                    ctaButton.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) translateY(-2px)`;
+                });
+                
+                ctaButton.addEventListener('mouseleave', () => {
+                    ctaButton.style.transform = 'translate(0, 0)';
+                });
+            }
+            
+            // Smooth reveal on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+            
+            // Tech tags interactive glow
+            const techTags = document.querySelectorAll('.tech-tag');
+            techTags.forEach(tag => {
+                tag.addEventListener('mouseenter', function(e) {
+                    this.style.transform = 'scale(1.05)';
+                });
+                tag.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+            
+            // Smooth cursor follower (optional custom cursor)
+            const cursor = document.createElement('div');
+            cursor.className = 'custom-cursor';
+            document.body.appendChild(cursor);
+            
+            let cursorX = 0, cursorY = 0;
+            
+            function updateCursor() {
+                cursorX += (mouseX - cursorX) * 0.15;
+                cursorY += (mouseY - cursorY) * 0.15;
+                cursor.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
+                requestAnimationFrame(updateCursor);
+            }
+            updateCursor();
+            
+            // Expand cursor on hover
+            const interactiveElements = document.querySelectorAll('button, .tech-tag, .module-card');
+            interactiveElements.forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    cursor.style.width = '60px';
+                    cursor.style.height = '60px';
+                    cursor.style.opacity = '0.25';
+                    cursor.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                });
+                el.addEventListener('mouseleave', () => {
+                    cursor.style.width = '40px';
+                    cursor.style.height = '40px';
+                    cursor.style.opacity = '0.15';
+                    cursor.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                });
+            });
+            
+            // Click ripple effect
+            document.addEventListener('click', (e) => {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = e.clientX - 50 + 'px';
+                ripple.style.top = e.clientY - 50 + 'px';
+                ripple.style.width = '100px';
+                ripple.style.height = '100px';
+                document.body.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 800);
+            });
+            
+            // Particle trail effect (subtle)
+            let lastParticleTime = 0;
+            document.addEventListener('mousemove', (e) => {
+                const now = Date.now();
+                if (now - lastParticleTime > 50) { // Create particle every 50ms
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = e.clientX - 2 + 'px';
+                    particle.style.top = e.clientY - 2 + 'px';
+                    document.body.appendChild(particle);
+                    
+                    setTimeout(() => particle.remove(), 1200);
+                    lastParticleTime = now;
+                }
+            });
+            
+            // Touch glow effect for clicks
+            document.addEventListener('click', (e) => {
+                const glow = document.createElement('div');
+                glow.className = 'touch-glow';
+                glow.style.left = e.clientX - 100 + 'px';
+                glow.style.top = e.clientY - 100 + 'px';
+                document.body.appendChild(glow);
+                
+                setTimeout(() => glow.remove(), 1000);
+            });
+            
+            // Smooth scroll behavior
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // Enhanced hover effects for cards - light following
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    
+                    card.style.setProperty('--mouse-x', x + '%');
+                    card.style.setProperty('--mouse-y', y + '%');
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="grid-background"></div>
+    <div class="geometric-shape shape1"></div>
+    <div class="geometric-shape shape2"></div>
+    <div class="geometric-shape shape3"></div>
+    
+    <div class="container">
+        <header>
+            <div class="course-tag">Advanced Course 2025</div>
+            <h1>Re-Thinking <span class="gradient-text">BIM</span></h1>
+            <p class="subtitle">Optimized Computational Facade Systems: Algorithmic design strategies for performance-driven building envelopes using parametric workflows and real-time analysis</p>
+        </header>
+        
+        <div class="content-grid">
+            <div class="module-card">
+                <div class="module-number">MODULE 01</div>
+                <h3 class="module-title">Parametric Fundamentals</h3>
+                <p class="module-description">Master the core principles of computational design thinking, algorithmic problem-solving, and data-driven facade optimization workflows.</p>
+                <div class="tech-specs">
+                    <span class="tech-tag">Grasshopper</span>
+                    <span class="tech-tag">Python</span>
+                    <span class="tech-tag">Algorithms</span>
+                </div>
+            </div>
+            
+            <div class="module-card">
+                <div class="module-number">MODULE 02</div>
+                <h3 class="module-title">Performance Analysis</h3>
+                <p class="module-description">Integrate environmental simulation tools to evaluate solar radiation, thermal performance, and daylighting optimization in real-time design iterations.</p>
+                <div class="tech-specs">
+                    <span class="tech-tag">Ladybug</span>
+                    <span class="tech-tag">Energy+</span>
+                    <span class="tech-tag">CFD</span>
+                </div>
+            </div>
+            
+            <div class="module-card">
+                <div class="module-number">MODULE 03</div>
+                <h3 class="module-title">Advanced Fabrication</h3>
+                <p class="module-description">Translate computational designs into manufacturable components using CNC workflows, robotic fabrication, and digital material optimization.</p>
+                <div class="tech-specs">
+                    <span class="tech-tag">Fabrication</span>
+                    <span class="tech-tag">CNC</span>
+                    <span class="tech-tag">Robotics</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <button class="cta-button">Explore Curriculum</button>
+        </div>
+    </div>
+    
+    <div class="cursor"></div>
+    <div class="cursor-dot"></div>
+    
+    <script>
+        // Custom cursor
+        const cursor = document.querySelector('.cursor');
+        const cursorDot = document.querySelector('.cursor-dot');
+        let mouseX = 0, mouseY = 0;
+        let cursorX = 0, cursorY = 0;
+        let dotX = 0, dotY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        // Smooth cursor follow
+        function animateCursor() {
+            const speed = 0.15;
+            const dotSpeed = 0.5;
+            
+            cursorX += (mouseX - cursorX) * speed;
+            cursorY += (mouseY - cursorY) * speed;
+            dotX += (mouseX - dotX) * dotSpeed;
+            dotY += (mouseY - dotY) * dotSpeed;
+            
+            cursor.style.transform = `translate(${cursorX - 10}px, ${cursorY - 10}px)`;
+            cursorDot.style.transform = `translate(${dotX - 3}px, ${dotY - 3}px)`;
+            
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+        
+        // Hover effects
+        const hoverElements = document.querySelectorAll('a, button, .tech-tag, .module-card');
+        hoverElements.forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+        
+        // Ripple effect on click
+        let lastClickTime = 0;
+        const clickCooldown = 150;
+        
+        document.addEventListener('click', (e) => {
+            const currentTime = Date.now();
+            if (currentTime - lastClickTime < clickCooldown) return;
+            lastClickTime = currentTime;
+            
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = e.clientX - 50 + 'px';
+            ripple.style.top = e.clientY - 50 + 'px';
+            ripple.style.width = '100px';
+            ripple.style.height = '100px';
+            document.body.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 800);
+            
+            // Add touch glow
+            const glow = document.createElement('div');
+            glow.className = 'touch-glow';
+            glow.style.left = e.clientX - 100 + 'px';
+            glow.style.top = e.clientY - 100 + 'px';
+            document.body.appendChild(glow);
+            
+            setTimeout(() => glow.remove(), 1000);
+        });
+        
+        // Particle trail effect
+        let particleCount = 0;
+        const maxParticles = 30;
+        const particleInterval = 80;
+        let lastParticleTime = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            const currentTime = Date.now();
+            if (currentTime - lastParticleTime < particleInterval) return;
+            lastParticleTime = currentTime;
+            
+            if (particleCount >= maxParticles) return;
+            
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = e.clientX - 2 + 'px';
+            particle.style.top = e.clientY - 2 + 'px';
+            document.body.appendChild(particle);
+            
+            particleCount++;
+            
+            setTimeout(() => {
+                particle.remove();
+                particleCount--;
+            }, 1200);
+        });
+        
+        // Magnetic card effect
+        const cards = document.querySelectorAll('.module-card');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const deltaX = (x - centerX) / centerX;
+                const deltaY = (y - centerY) / centerY;
+                
+                card.style.transform = `
+                    translateY(-6px) 
+                    rotateY(${deltaX * 5}deg) 
+                    rotateX(${-deltaY * 5}deg)
+                    scale(1.02)
+                `;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0) rotateY(0) rotateX(0) scale(1)';
+            });
+        });
+        
+        // Disable cursor effects on touch devices
+        if ('ontouchstart' in window) {
+            cursor.style.display = 'none';
+            cursorDot.style.display = 'none';
+            document.querySelectorAll('*').forEach(el => {
+                el.style.cursor = 'auto';
+            });
+        }
+        
+        // Check for reduced motion preference
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        
+        // Parallax effect on scroll
+        if (!prefersReducedMotion) {
+            let ticking = false;
+            
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        const scrolled = window.pageYOffset;
+                        const shapes = document.querySelectorAll('.geometric-shape');
+                        
+                        shapes.forEach((shape, index) => {
+                            const speed = 0.3 + (index * 0.1);
+                            const yPos = -(scrolled * speed);
+                            shape.style.transform = `translateY(${yPos}px)`;
+                        });
+                        
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+            
+            // Mouse move parallax for background elements
+            document.addEventListener('mousemove', (e) => {
+                const shapes = document.querySelectorAll('.geometric-shape');
+                const moveX = (e.clientX - window.innerWidth / 2) / 50;
+                const moveY = (e.clientY - window.innerHeight / 2) / 50;
+                
+                shapes.forEach((shape, index) => {
+                    const depth = (index + 1) * 0.3;
+                    shape.style.transform = `translate(${moveX * depth}px, ${moveY * depth}px)`;
+                });
+            });
+            
+            // Add subtle tilt to header on mouse move
+            const header = document.querySelector('header');
+            if (header) {
+                header.addEventListener('mousemove', (e) => {
+                    const rect = header.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const deltaX = (x - centerX) / centerX;
+                    const deltaY = (y - centerY) / centerY;
+                    
+                    header.style.transform = `
+                        perspective(1000px) 
+                        rotateY(${deltaX * 2}deg) 
+                        rotateX(${-deltaY * 2}deg)
+                    `;
+                });
+                
+                header.addEventListener('mouseleave', () => {
+                    header.style.transform = 'perspective(1000px) rotateY(0) rotateX(0)';
+                });
+            }
+        }
+    </script>
+    <script>
+        // Wait for the DOM and script.js to be fully loaded
+        window.addEventListener('load', function() {
+            // Check if TouchHandler is available
+            if (typeof window.TouchHandler === 'function') {
+                // Initialize touch handler
+                const touchHandler = new window.TouchHandler();
+                
+                // Add any additional initialization code here
+                document.body.classList.add('js-loaded');
+            } else {
+                console.error('TouchHandler class not found');
+            }
+            
+            // Initialize other interactive elements
+            initInteractiveElements();
+        });
+        
+        function initInteractiveElements() {
+            // Add any additional interactive elements initialization here
+            console.log('Interactive elements initialized');
+        }
+    </script>
+    <script src="script.js" defer></script>
+</body>
+</html>

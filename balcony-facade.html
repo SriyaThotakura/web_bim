@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balcony Facade Design</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+        }
+        
+        .design-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .canvas-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: 600px;
+        }
+        
+        #facadeCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        label {
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e2e8f0;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4299e1;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: #3182ce;
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+        
+        button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover {
+            background: #3182ce;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            grid-column: 1 / -1;
+        }
+        
+        .secondary-btn {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .secondary-btn:hover {
+            background: #cbd5e0;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .canvas-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Complex Balcony Facade Design</h1>
+        
+        <div class="design-container">
+            <div class="canvas-container">
+                <canvas id="facadeCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="floorCount">Number of Floors</label>
+                    <input type="range" id="floorCount" min="3" max="20" value="8">
+                    <div class="value-display">
+                        <span>3</span>
+                        <span id="floorCountValue">8</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="balconyDepth">Balcony Depth</label>
+                    <input type="range" id="balconyDepth" min="1" max="5" value="3">
+                    <div class="value-display">
+                        <span>Shallow</span>
+                        <span id="balconyDepthValue">Medium</span>
+                        <span>Deep</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="balconySpacing">Balcony Spacing</label>
+                    <input type="range" id="balconySpacing" min="1" max="5" value="3">
+                    <div class="value-display">
+                        <span>Dense</span>
+                        <span id="balconySpacingValue">Normal</span>
+                        <span>Sparse</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="balconyStyle">Balcony Style</label>
+                    <select id="balconyStyle" class="control-select">
+                        <option value="standard">Standard</option>
+                        <option value="curved">Curved</option>
+                        <option value="angled">Angled</option>
+                        <option value="floating">Floating</option>
+                    </select>
+                </div>
+                
+                <div class="button-group">
+                    <button id="randomizeBtn">Randomize Design</button>
+                    <button id="resetBtn" class="secondary-btn">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Canvas setup
+            const canvas = document.getElementById('facadeCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // State
+            const state = {
+                floorCount: 8,
+                balconyDepth: 3,
+                balconySpacing: 3,
+                balconyStyle: 'standard',
+                rotation: 0,
+                scale: 1,
+                isDragging: false,
+                lastX: 0,
+                lastY: 0
+            };
+            
+            // Color palette
+            const colors = {
+                building: '#f0f4f8',
+                floorDivide: '#e2e8f0',
+                balcony: {
+                    floor: '#e2e8f0',
+                    glass: '#f0f9ff',
+                    railing: '#90cdf4',
+                    support: '#cbd5e0',
+                    shadow: 'rgba(0,0,0,0.1)'
+                },
+                window: {
+                    frame: '#cbd5e0',
+                    glass: '#ebf8ff',
+                    highlight: 'rgba(255,255,255,0.8)'
+                }
+            };
+            
+            // DOM Elements
+            const floorCountInput = document.getElementById('floorCount');
+            const floorCountValue = document.getElementById('floorCountValue');
+            const balconyDepthInput = document.getElementById('balconyDepth');
+            const balconyDepthValue = document.getElementById('balconyDepthValue');
+            const balconySpacingInput = document.getElementById('balconySpacing');
+            const balconySpacingValue = document.getElementById('balconySpacingValue');
+            const balconyStyleSelect = document.getElementById('balconyStyle');
+            const randomizeBtn = document.getElementById('randomizeBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            // Initialize
+            function init() {
+                setupEventListeners();
+                resizeCanvas();
+                updateDisplayValues();
+                drawFacade();
+            }
+            
+            // Setup event listeners
+            function setupEventListeners() {
+                // Window resize
+                window.addEventListener('resize', debounce(resizeCanvas, 100));
+                
+                // Input controls
+                floorCountInput.addEventListener('input', (e) => {
+                    state.floorCount = parseInt(e.target.value);
+                    updateDisplayValues();
+                    drawFacade();
+                });
+                
+                balconyDepthInput.addEventListener('input', (e) => {
+                    state.balconyDepth = parseInt(e.target.value);
+                    updateDisplayValues();
+                    drawFacade();
+                });
+                
+                balconySpacingInput.addEventListener('input', (e) => {
+                    state.balconySpacing = parseInt(e.target.value);
+                    updateDisplayValues();
+                    drawFacade();
+                });
+                
+                balconyStyleSelect.addEventListener('change', (e) => {
+                    state.balconyStyle = e.target.value;
+                    drawFacade();
+                });
+                
+                // Buttons
+                randomizeBtn.addEventListener('click', randomizeDesign);
+                resetBtn.addEventListener('click', resetDesign);
+                
+                // Mouse/touch interaction
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+                canvas.addEventListener('wheel', handleWheel);
+                
+                // Touch support
+                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                canvas.addEventListener('touchend', handleTouchEnd);
+            }
+            
+            // Update display values
+            function updateDisplayValues() {
+                floorCountValue.textContent = state.floorCount;
+                
+                const depthText = ['Very Shallow', 'Shallow', 'Medium', 'Deep', 'Very Deep'];
+                balconyDepthValue.textContent = depthText[state.balconyDepth - 1];
+                
+                const spacingText = ['Very Dense', 'Dense', 'Normal', 'Sparse', 'Very Sparse'];
+                balconySpacingValue.textContent = spacingText[state.balconySpacing - 1];
+            }
+            
+            // Randomize design
+            function randomizeDesign() {
+                state.floorCount = Math.floor(Math.random() * 18) + 3; // 3-20
+                state.balconyDepth = Math.floor(Math.random() * 5) + 1; // 1-5
+                state.balconySpacing = Math.floor(Math.random() * 5) + 1; // 1-5
+                state.balconyStyle = ['standard', 'curved', 'angled', 'floating'][Math.floor(Math.random() * 4)];
+                
+                // Update UI
+                floorCountInput.value = state.floorCount;
+                balconyDepthInput.value = state.balconyDepth;
+                balconySpacingInput.value = state.balconySpacing;
+                balconyStyleSelect.value = state.balconyStyle;
+                
+                updateDisplayValues();
+                drawFacade();
+            }
+            
+            // Reset design
+            function resetDesign() {
+                state.floorCount = 8;
+                state.balconyDepth = 3;
+                state.balconySpacing = 3;
+                state.balconyStyle = 'standard';
+                state.rotation = 0;
+                state.scale = 1;
+                
+                // Update UI
+                floorCountInput.value = state.floorCount;
+                balconyDepthInput.value = state.balconyDepth;
+                balconySpacingInput.value = state.balconySpacing;
+                balconyStyleSelect.value = state.balconyStyle;
+                
+                updateDisplayValues();
+                drawFacade();
+            }
+            
+            // Resize canvas to fit container
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                const dpr = window.devicePixelRatio || 1;
+                
+                // Set display size
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                
+                // Set actual size in memory (scaled for retina displays)
+                canvas.width = container.clientWidth * dpr;
+                canvas.height = container.clientHeight * dpr;
+                
+                // Scale the context to ensure correct drawing operations
+                ctx.scale(dpr, dpr);
+                
+                // Redraw
+                drawFacade();
+            }
+            
+            // Draw the facade
+            function drawFacade() {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Save the current context
+                ctx.save();
+                
+                // Apply transformations
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                ctx.translate(centerX, centerY);
+                ctx.scale(state.scale, state.scale);
+                ctx.rotate(state.rotation);
+                
+                // Calculate dimensions
+                const buildingWidth = Math.min(400, canvas.width * 0.6);
+                const floorHeight = 50;
+                const buildingHeight = state.floorCount * floorHeight;
+                const balconyDepth = 20 + (state.balconyDepth - 1) * 10; // 20-60px
+                const balconySpacing = 0.5 + (state.balconySpacing - 1) * 0.25; // 0.5-1.5
+                
+                // Draw building background
+                ctx.fillStyle = colors.building;
+                ctx.fillRect(-buildingWidth/2, -buildingHeight/2, buildingWidth, buildingHeight);
+                
+                // Draw windows and balconies for each floor
+                for (let i = 0; i < state.floorCount; i++) {
+                    const floorY = -buildingHeight/2 + i * floorHeight;
+                    
+                    // Draw floor line
+                    if (i > 0) {
+                        ctx.strokeStyle = colors.floorDivide;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(-buildingWidth/2, floorY);
+                        ctx.lineTo(buildingWidth/2, floorY);
+                        ctx.stroke();
+                    }
+                    
+                    // Draw windows
+                    drawWindows(-buildingWidth/2, floorY, buildingWidth, floorHeight);
+                    
+                    // Draw balcony (every nth floor based on spacing)
+                    if (i % Math.ceil(balconySpacing) === 0 && i < state.floorCount - 1) {
+                        drawBalcony(-buildingWidth/2, floorY + floorHeight - 10, buildingWidth, balconyDepth, i);
+                    }
+                }
+                
+                // Restore the context
+                ctx.restore();
+            }
+            
+            // Draw windows for a floor
+            function drawWindows(x, y, width, height) {
+                const windowWidth = 40;
+                const windowHeight = 30;
+                const windowSpacing = 20;
+                const windowTopMargin = 15;
+                
+                // Calculate number of windows that fit
+                const windowsPerRow = Math.floor((width - 40) / (windowWidth + windowSpacing));
+                const totalWindowWidth = windowsPerRow * (windowWidth + windowSpacing) - windowSpacing;
+                const startX = x + (width - totalWindowWidth) / 2;
+                
+                // Draw windows in a grid
+                for (let row = 0; row < 2; row++) {
+                    for (let col = 0; col < windowsPerRow; col++) {
+                        const windowX = startX + col * (windowWidth + windowSpacing);
+                        const windowY = y + windowTopMargin + row * (windowHeight + 10);
+                        
+                        // Skip if window would go below floor
+                        if (windowY + windowHeight > y + height - 5) continue;
+                        
+                        // Window frame
+                        ctx.fillStyle = colors.window.frame;
+                        ctx.fillRect(windowX, windowY, windowWidth, windowHeight);
+                        
+                        // Window glass
+                        ctx.fillStyle = colors.window.glass;
+                        ctx.fillRect(windowX + 2, windowY + 2, windowWidth - 4, windowHeight - 4);
+                        
+                        // Window highlight
+                        ctx.fillStyle = colors.window.highlight;
+                        ctx.fillRect(windowX + 2, windowY + 2, windowWidth - 4, 8);
+                    }
+                }
+            }
+            
+            // Draw a balcony
+            function drawBalcony(x, y, width, depth, floorIndex) {
+                const balconyWidth = width * (0.7 + Math.random() * 0.2); // 70-90% of building width
+                const balconyX = x + (width - balconyWidth) / 2;
+                
+                // Balcony floor
+                ctx.fillStyle = colors.balcony.floor;
+                ctx.fillRect(balconyX, y, balconyWidth, 5);
+                
+                // Balcony glass/railing
+                ctx.fillStyle = colors.balcony.glass;
+                ctx.fillRect(balconyX, y - 20, balconyWidth, 20);
+                
+                // Balcony railing top
+                ctx.strokeStyle = colors.balcony.railing;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(balconyX, y - 20);
+                ctx.lineTo(balconyX + balconyWidth, y - 20);
+                ctx.stroke();
+                
+                // Balcony supports
+                const supportCount = Math.ceil(balconyWidth / 60);
+                const supportSpacing = balconyWidth / (supportCount - 1);
+                
+                ctx.strokeStyle = colors.balcony.railing;
+                ctx.lineWidth = 1.5;
+                
+                for (let i = 0; i < supportCount; i++) {
+                    const supportX = balconyX + i * supportSpacing;
+                    
+                    // Vertical support
+                    ctx.beginPath();
+                    ctx.moveTo(supportX, y - 20);
+                    ctx.lineTo(supportX, y);
+                    ctx.stroke();
+                    
+                    // Diagonal support (every other)
+                    if (i < supportCount - 1 && i % 2 === 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(supportX, y - 10);
+                        ctx.lineTo(supportX + supportSpacing, y - 20);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Add style-specific elements
+                switch (state.balconyStyle) {
+                    case 'curved':
+                        // Curved glass effect
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            balconyX + balconyWidth / 2,
+                            y - 20,
+                            balconyWidth * 0.4,
+                            15,
+                            0,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.stroke();
+                        break;
+                        
+                    case 'angled':
+                        // Angled supports
+                        for (let i = 0; i < supportCount; i += 2) {
+                            const supportX = balconyX + i * supportSpacing;
+                            
+                            if (i > 0) {
+                                ctx.beginPath();
+                                ctx.moveTo(supportX - supportSpacing, y - 5);
+                                ctx.lineTo(supportX, y - 20);
+                                ctx.stroke();
+                            }
+                            
+                            if (i < supportCount - 1) {
+                                ctx.beginPath();
+                                ctx.moveTo(supportX, y - 20);
+                                ctx.lineTo(supportX + supportSpacing, y - 5);
+                                ctx.stroke();
+                            }
+                        }
+                        break;
+                        
+                    case 'floating':
+                        // Floating effect with shadow
+                        const shadowGradient = ctx.createLinearGradient(0, y + 5, 0, y + 15);
+                        shadowGradient.addColorStop(0, 'rgba(0,0,0,0.15)');
+                        shadowGradient.addColorStop(1, 'transparent');
+                        
+                        ctx.fillStyle = shadowGradient;
+                        ctx.fillRect(balconyX, y + 5, balconyWidth, 15);
+                        
+                        // Floating supports
+                        for (let i = 0; i < supportCount; i += 2) {
+                            const supportX = balconyX + i * supportSpacing;
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(supportX, y - 20);
+                            ctx.quadraticCurveTo(
+                                supportX + supportSpacing / 2,
+                                y - 30 - Math.random() * 10,
+                                supportX + supportSpacing,
+                                y - 20
+                            );
+                            ctx.stroke();
+                        }
+                        break;
+                }
+                
+                // Add some random plants or furniture (every 3rd balcony)
+                if (floorIndex % 3 === 0) {
+                    const itemCount = 2 + Math.floor(Math.random() * 3);
+                    const itemWidth = balconyWidth / (itemCount + 1);
+                    
+                    for (let i = 0; i < itemCount; i++) {
+                        const itemX = balconyX + (i + 1) * itemWidth - 5;
+                        
+                        // Randomly choose between plant or chair
+                        if (Math.random() > 0.5) {
+                            // Plant
+                            ctx.fillStyle = '#48bb78';
+                            ctx.beginPath();
+                            ctx.arc(itemX, y - 5, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            ctx.fillStyle = '#2f855a';
+                            ctx.beginPath();
+                            ctx.arc(itemX - 3, y - 8, 3, 0, Math.PI * 2);
+                            ctx.arc(itemX + 3, y - 8, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            // Chair
+                            ctx.fillStyle = '#c53030';
+                            ctx.fillRect(itemX - 4, y - 8, 8, 5);
+                            
+                            // Chair back
+                            ctx.fillStyle = '#9b2c2c';
+                            ctx.fillRect(itemX - 4, y - 12, 2, 5);
+                            ctx.fillRect(itemX + 2, y - 12, 2, 5);
+                        }
+                    }
+                }
+            }
+            
+            // Event handlers
+            function handleMouseDown(e) {
+                state.isDragging = true;
+                state.lastX = e.clientX;
+                state.lastY = e.clientY;
+                e.preventDefault();
+            }
+            
+            function handleMouseMove(e) {
+                if (state.isDragging) {
+                    const dx = e.clientX - state.lastX;
+                    state.rotation += dx * 0.01;
+                    state.lastX = e.clientX;
+                    drawFacade();
+                }
+            }
+            
+            function handleMouseUp() {
+                state.isDragging = false;
+            }
+            
+            function handleWheel(e) {
+                e.preventDefault();
+                const delta = -Math.sign(e.deltaY) * 0.1;
+                state.scale = Math.min(Math.max(0.5, state.scale + delta), 2);
+                drawFacade();
+            }
+            
+            function handleTouchStart(e) {
+                if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    state.isDragging = true;
+                    state.lastX = touch.clientX;
+                    state.lastY = touch.clientY;
+                }
+                e.preventDefault();
+            }
+            
+            function handleTouchMove(e) {
+                if (e.touches.length === 1 && state.isDragging) {
+                    const touch = e.touches[0];
+                    const dx = touch.clientX - state.lastX;
+                    state.rotation += dx * 0.01;
+                    state.lastX = touch.clientX;
+                    drawFacade();
+                }
+                e.preventDefault();
+            }
+            
+            function handleTouchEnd() {
+                state.isDragging = false;
+            }
+            
+            // Utility function to debounce rapid events
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), wait);
+                };
+            }
+            
+            // Start the application
+            init();
+        });
+    </script>
+</body>
+</html>
